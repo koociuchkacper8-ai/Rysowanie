@@ -149,7 +149,15 @@ async function rate(){
    if(!key)throw {code:"no_key"};
    let r;for(const m of MODELS){r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:m,max_tokens:1500,temperature:0.3,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:cv.toDataURL("image/jpeg",0.8)}}]}]})});
    if(r.status!==404&&r.status!==400)break;}
-   if(!r.ok){if(r.status===401){try{localStorage.removeItem("gk");}catch(_){}}throw {code:r.status===401?"bad_key":r.status===429?"rate_limited":"api_"+r.status};}
+   if(!r.ok){
+    if(r.status===401){try{localStorage.removeItem("gk");}catch(_){}}
+    let detail="";
+    if(r.status===404||r.status===400){
+     try{detail=(await r.clone().json()).error.message+" ";}catch(_){}
+     try{const mr=await fetch("https://api.groq.com/openai/v1/models",{headers:{"Authorization":"Bearer "+key}});const md=await mr.json();detail+="Modele dostępne na Twoim koncie: "+(md.data||[]).map(x=>x.id).filter(id=>!/whisper|guard|tts|orpheus/i.test(id)).slice(0,15).join(", ");}catch(_){}
+    }
+    throw {code:r.status===401?"bad_key":r.status===429?"rate_limited":"api_"+r.status,detail};
+   }
    const d=await r.json();out={text:String(((d.choices||[])[0]||{}).message?.content||"").replace(/<think>[\s\S]*?<\/think>/g,"")};
   }
   let n,c="",t="";
@@ -162,7 +170,7 @@ async function rate(){
   $("rate").classList.add("hide");
  }catch(e){
   const code=(e&&e.code)||"unknown";
-  $("res").textContent=ERR[code]||((code==="no_runtime"||code==="no_sample")?"Ocenianie AI działa tylko po otwarciu gry w aplikacji Claude, nie w zwykłej przeglądarce.":"Nie udało się ocenić ("+code+(code==="unknown"?": "+((e&&e.message)||e):"")+"). Spróbuj jeszcze raz.");
+  $("res").textContent=ERR[code]||((code==="no_runtime"||code==="no_sample")?"Ocenianie AI działa tylko po otwarciu gry w aplikacji Claude, nie w zwykłej przeglądarce.":"Nie udało się ocenić ("+code+(code==="unknown"?": "+((e&&e.message)||e):"")+"). Spróbuj jeszcze raz."+(e&&e.detail?" "+e.detail:""));
   busy=false;$("rate").disabled=false;
  }
 }
