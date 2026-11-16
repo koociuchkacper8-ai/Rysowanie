@@ -129,18 +129,28 @@ function round(){
 }
 Object.keys(T).forEach(k=>{const b=document.createElement("button");b.className="topic";b.innerHTML="<span>"+T[k].i+"</span>"+k;b.onclick=()=>{cur=T[k];$("mtitle").textContent=T[k].i+" "+k+" – wybierz tryb";show("modes");};$("topics").appendChild(b);});
 function start(h){hard=h;score=0;pool=[];$("score").textContent="Punkty: 0";$("mode").textContent=h?"🔴 Trudny":"🟢 Łatwy";show("game");round();}
-const ERR={not_granted:"Nie zezwoliłeś na użycie AI. Kliknij „Oceń rysunek” jeszcze raz i zezwól.",rate_limited:"Za dużo prób, poczekaj chwilę.",images_unavailable:"Ta wersja gry nie może wysyłać rysunków do AI.",image_rejected:"Nie udało się wysłać rysunku do AI."};
+// Opcjonalnie wklej tu klucz API Groq (UWAGA: każdy, kto otworzy stronę, go zobaczy). Zostaw "" żeby gra zapytała o klucz.
+const API_KEY="";
+const MODEL="qwen/qwen3.6-27b"; // model wizyjny Groq; gdyby Groq go wycofał, wybierz inny z console.groq.com/docs/models
+const ERR={no_key:"Bez klucza API Groq nie ma oceniania poza aplikacją Claude.",bad_key:"Klucz API Groq jest nieprawidłowy. Kliknij Oceń jeszcze raz i wklej poprawny.",not_granted:"Nie zezwoliłeś na użycie AI. Kliknij „Oceń rysunek” jeszcze raz i zezwól.",rate_limited:"Za dużo prób, poczekaj chwilę.",images_unavailable:"Ta wersja gry nie może wysyłać rysunków do AI.",image_rejected:"Nie udało się wysłać rysunku do AI.",server_404:"Ta strona nie ma serwera oceniania. Uruchom grę przez server.js.",server_500:"Serwer gry nie ma ustawionego klucza API (ANTHROPIC_API_KEY).",server_502:"AI nie odpowiedziało. Sprawdź klucz API i spróbuj ponownie."};
 async function rate(){
  if(busy)return;
  if(!drawn){$("res").textContent="Najpierw coś narysuj ✏️";return;}
  busy=true;$("rate").disabled=true;$("res").textContent="AI ocenia rysunek… (może to potrwać kilka sekund)";
  try{
-  if(typeof claude==="undefined")throw {code:"no_runtime"};
-  if(!sample)sample=await claude.use("sample");
-  if(!sample)throw {code:"no_sample"};
-  const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+  if(!sample&&typeof claude!=="undefined"){try{sample=await claude.use("sample");}catch(_){}}
   const prompt="Jesteś jurorem w grze rysunkowej. Na załączonym obrazku jest rysunek gracza. Gracz miał narysować: „"+task+"”. Oceń rysunek w skali od 1 do 10 (liczba całkowita). "+(hard?"To tryb trudny: oceń też, czy widać dodatkowy szczegół z zadania (np. cechy rasy, kolory, charakterystyczne elementy). ":"")+"Pusta lub bezsensowna kartka to 1. Bądź uczciwy, ale życzliwy. Odpowiedz wyłącznie JSON-em: {\"score\":liczba,\"comment\":\"jedno krótkie zdanie po polsku\",\"tip\":\"w skrócie, co gracz mógłby dodać lub poprawić na rysunku, maksymalnie jedno zdanie\"}";
-  const out=await sample(prompt,{images:[blob],modelTier:"quick",cache:false});
+  let out;
+  if(sample){const blob=await new Promise(r=>cv.toBlob(r,"image/png"));out=await sample(prompt,{images:[blob],modelTier:"quick",cache:false});}
+  else{
+   let key=API_KEY;
+   if(!key){try{key=localStorage.getItem("gk")||"";}catch(_){}}
+   if(!key){key=(prompt("Wklej swój klucz API Groq (zaczyna się od gsk_). Zapisze się tylko w tej przeglądarce:")||"").trim();if(key){try{localStorage.setItem("gk",key);}catch(_){}}}
+   if(!key)throw {code:"no_key"};
+   const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:1500,temperature:0.3,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:cv.toDataURL("image/jpeg",0.8)}}]}]})});
+   if(!r.ok){if(r.status===401){try{localStorage.removeItem("gk");}catch(_){}}throw {code:r.status===401?"bad_key":r.status===429?"rate_limited":"api_"+r.status};}
+   const d=await r.json();out={text:String(((d.choices||[])[0]||{}).message?.content||"").replace(/<think>[\s\S]*?<\/think>/g,"")};
+  }
   let n,c="",t="";
   try{const j=JSON.parse(out.text.match(/\{[\s\S]*\}/)[0]);n=Number(j.score);c=j.comment||"";t=j.tip||"";}
   catch(_){const m=out.text.match(/\b(10|[1-9])\b/);n=m?Number(m[1]):NaN;c=out.text.slice(0,140);}
