@@ -131,7 +131,7 @@ Object.keys(T).forEach(k=>{const b=document.createElement("button");b.className=
 function start(h){hard=h;score=0;pool=[];$("score").textContent="Punkty: 0";$("mode").textContent=h?"🔴 Trudny":"🟢 Łatwy";show("game");round();}
 // Opcjonalnie wklej tu klucz API Groq (UWAGA: każdy, kto otworzy stronę, go zobaczy). Zostaw "" żeby gra zapytała o klucz.
 const API_KEY="";
-const MODEL="qwen/qwen3.6-27b"; // model wizyjny Groq; gdyby Groq go wycofał, wybierz inny z console.groq.com/docs/models
+const MODELS=["qwen/qwen3.8-27b","meta-models/muse-spark-open","qwen/qwen3.6-27b"]; // modele wizyjne Groq (próbowane po kolei); aktualna lista: console.groq.com/docs/vision
 const ERR={no_key:"Bez klucza API Groq nie ma oceniania poza aplikacją Claude.",bad_key:"Klucz API Groq jest nieprawidłowy. Kliknij Oceń jeszcze raz i wklej poprawny.",not_granted:"Nie zezwoliłeś na użycie AI. Kliknij „Oceń rysunek” jeszcze raz i zezwól.",rate_limited:"Za dużo prób, poczekaj chwilę.",images_unavailable:"Ta wersja gry nie może wysyłać rysunków do AI.",image_rejected:"Nie udało się wysłać rysunku do AI.",server_404:"Ta strona nie ma serwera oceniania. Uruchom grę przez server.js.",server_500:"Serwer gry nie ma ustawionego klucza API (ANTHROPIC_API_KEY).",server_502:"AI nie odpowiedziało. Sprawdź klucz API i spróbuj ponownie."};
 async function rate(){
  if(busy)return;
@@ -147,7 +147,8 @@ async function rate(){
    if(!key){try{key=localStorage.getItem("gk")||"";}catch(_){}}
    if(!key){key=(window.prompt("Wklej swój klucz API Groq (zaczyna się od gsk_). Zapisze się tylko w tej przeglądarce:")||"").trim();if(key){try{localStorage.setItem("gk",key);}catch(_){}}}
    if(!key)throw {code:"no_key"};
-   const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:1500,temperature:0.3,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:cv.toDataURL("image/jpeg",0.8)}}]}]})});
+   let r;for(const m of MODELS){r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:m,max_tokens:1500,temperature:0.3,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:cv.toDataURL("image/jpeg",0.8)}}]}]})});
+   if(r.status!==404&&r.status!==400)break;}
    if(!r.ok){if(r.status===401){try{localStorage.removeItem("gk");}catch(_){}}throw {code:r.status===401?"bad_key":r.status===429?"rate_limited":"api_"+r.status};}
    const d=await r.json();out={text:String(((d.choices||[])[0]||{}).message?.content||"").replace(/<think>[\s\S]*?<\/think>/g,"")};
   }
