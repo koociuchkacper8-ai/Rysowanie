@@ -145,7 +145,7 @@ async function rate(){
   else{
    let key=API_KEY;
    if(!key){try{key=localStorage.getItem("gk")||"";}catch(_){}}
-   if(!key){key=(prompt("Wklej swój klucz API Groq (zaczyna się od gsk_). Zapisze się tylko w tej przeglądarce:")||"").trim();if(key){try{localStorage.setItem("gk",key);}catch(_){}}}
+   if(!key){key=(window.prompt("Wklej swój klucz API Groq (zaczyna się od gsk_). Zapisze się tylko w tej przeglądarce:")||"").trim();if(key){try{localStorage.setItem("gk",key);}catch(_){}}}
    if(!key)throw {code:"no_key"};
    const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:1500,temperature:0.3,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:cv.toDataURL("image/jpeg",0.8)}}]}]})});
    if(!r.ok){if(r.status===401){try{localStorage.removeItem("gk");}catch(_){}}throw {code:r.status===401?"bad_key":r.status===429?"rate_limited":"api_"+r.status};}
@@ -161,7 +161,7 @@ async function rate(){
   $("rate").classList.add("hide");
  }catch(e){
   const code=(e&&e.code)||"unknown";
-  $("res").textContent=ERR[code]||((code==="no_runtime"||code==="no_sample")?"Ocenianie AI działa tylko po otwarciu gry w aplikacji Claude, nie w zwykłej przeglądarce.":"Nie udało się ocenić ("+code+"). Spróbuj jeszcze raz.");
+  $("res").textContent=ERR[code]||((code==="no_runtime"||code==="no_sample")?"Ocenianie AI działa tylko po otwarciu gry w aplikacji Claude, nie w zwykłej przeglądarce.":"Nie udało się ocenić ("+code+(code==="unknown"?": "+((e&&e.message)||e):"")+"). Spróbuj jeszcze raz.");
   busy=false;$("rate").disabled=false;
  }
 }
