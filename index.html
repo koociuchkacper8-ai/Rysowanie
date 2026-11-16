@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>index</title>
+<style>
+:root{--bg:#f4f1ff;--card:#fff;--tx:#1f1b3a;--ac:#6c4cf5;--ok:#1f9d55;--bad:#d64545;--mu:#7a7599;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15122b;--card:#221e42;--tx:#f0eeff;--ac:#9b84ff;--ok:#3ecf80;--bad:#ff6b6b;--mu:#a29ec6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15122b;--card:#221e42;--tx:#f0eeff;--ac:#9b84ff;--ok:#3ecf80;--bad:#ff6b6b;--mu:#a29ec6;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center;text-align:center;padding:24px 16px}
+main{width:100%;max-width:440px}
+h1{font-size:28px;margin:0 0 20px}
+h2{font-size:20px;margin:0 0 14px}
+.topic{display:block;width:100%;margin-bottom:12px;background:var(--card);border:2px solid transparent;border-radius:16px;padding:20px;font-size:20px;color:var(--tx);cursor:pointer}
+.topic small{display:block;font-size:14px;color:var(--mu);margin-top:4px}
+.topic:hover,.topic:active{border-color:var(--ac)}
+.hide{display:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid .topic{margin:0;padding:22px 8px}.grid .topic span{display:block;font-size:34px;margin-bottom:4px}
+.bar{align-items:center}.exit{border:0;border-radius:10px;padding:8px 12px;background:var(--card);color:var(--tx);font-size:15px;cursor:pointer}.btn.nx{background:var(--card);color:var(--tx)}
+.bar{display:flex;justify-content:space-between;color:var(--mu);margin-bottom:10px}
+.task{font-size:22px;font-weight:700;margin-bottom:10px}
+canvas{width:100%;aspect-ratio:1/1;background:#fff;border-radius:16px;touch-action:none;display:block;border:2px solid var(--mu)}
+.pal{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.pal button{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--mu)}
+.pal button.sel{border-color:var(--ac);transform:scale(1.15)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.tools button{padding:8px 14px;border:0;border-radius:10px;background:var(--card);color:var(--tx);font-size:15px;cursor:pointer}
+.tools button.sel{background:var(--ac);color:#fff}
+.btn{display:block;width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-size:17px;cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn.alt{background:transparent;color:var(--mu)}
+.res{margin-top:14px;font-size:20px;font-weight:700}
+.res small{display:block;font-size:16px;font-weight:400;color:var(--mu);margin-top:6px}
+</style>
+</head>
+<body>
+<main>
+ <h1>Wybierz swój temat zgadywania</h1>
+ <section id="menu"><div class="grid" id="topics"></div></section>
+ <section id="modes" class="hide">
+  <h2 id="mtitle">Wybierz tryb</h2>
+  <button class="topic" id="easy">🟢 Łatwy<small>rysujesz samo hasło</small></button>
+  <button class="topic" id="hard">🔴 Trudny<small>hasło + dodatkowy szczegół (np. rasa)</small></button>
+  <button class="btn alt" id="b1">← Zmień temat</button>
+ </section>
+ <section id="game" class="hide">
+  <div class="bar"><button class="exit" id="exit">← Wyjście</button><span id="mode"></span><span id="score">Punkty: 0</span></div>
+  <div class="task" id="task"></div>
+  <canvas id="cv" width="640" height="640"></canvas>
+  <div class="tools" id="mt"></div>
+  <div class="pal" id="pal"></div>
+  <div class="tools" id="tools"></div>
+  <button class="btn" id="rate">Oceń rysunek</button>
+  <div class="res" id="res"></div>
+  <button class="btn nx" id="next">Następny rysunek ➡️</button>
+ </section>
+</main>
+<script>
+const T={
+"Zwierzęta":{i:"🐾",l:"rasa",e:["pająk","kot","pies","ryba","słoń","żyrafa","rekin","żaba","pingwin","motyl","wąż","koń","lew","ślimak","krab","sowa","krokodyl","ośmiornica","delfin","królik"],h:[["pies","husky"],["pies","owczarek niemiecki"],["pies","jamnik"],["pies","labrador"],["kot","syjamski"],["kot","pers"],["kot","maine coon"],["koń","fryz"],["koń","arab"],["pająk","czarna wdowa"],["pająk","tarantula"],["wąż","kobra"],["ryba","błazenek"],["ryba","karp"],["papuga","ara"],["papuga","kakadu"],["niedźwiedź","polarny"],["słoń","afrykański"],["rekin","młot"],["chomik","dżungarski"]]},
+"Zawody":{i:"👮",l:"szczegół",e:["policjant","strażak","lekarz","kucharz","nauczyciel","pilot","górnik","malarz","rolnik","astronauta","listonosz","fryzjer","budowlaniec","dentysta","detektyw"],h:[["policjant","z radiowozem i kajdankami"],["strażak","gasi pożar wężem"],["lekarz","ze stetoskopem i w fartuchu"],["kucharz","w wysokiej czapce, z patelnią"],["pilot","w kokpicie samolotu"],["astronauta","na Księżycu z flagą"],["rolnik","na traktorze"],["detektyw","z lupą i w płaszczu"]]},
+"Jedzenie":{i:"🍕",l:"wariant",e:["pizza","hamburger","lody","tort","arbuz","jabłko","pierogi","frytki","banan","kanapka","marchewka","pączek","sushi","truskawka","naleśniki"],h:[["pizza","z pepperoni i serem"],["hamburger","z sałatą, pomidorem i serem"],["tort","trzypiętrowy ze świeczkami"],["lody","trzy gałki w rożku"],["sushi","z rybą i ryżem"],["kanapka","z szynką, serem i sałatą"],["pączek","z lukrem i posypką"],["arbuz","przekrojony, z pestkami"]]},
+"Pojazdy":{i:"🚗",l:"typ",e:["samochód","rower","samolot","statek","pociąg","traktor","rakieta","motocykl","helikopter","autobus","łódź podwodna","hulajnoga","wóz strażacki","koparka","balon"],h:[["samochód","sportowy, czerwony"],["samochód","terenowy z dużymi kołami"],["samolot","pasażerski z oknami"],["statek","żaglowiec z trzema masztami"],["pociąg","parowóz z dymem"],["rakieta","z płomieniem i okienkiem"],["motocykl","typu chopper"],["ciężarówka","z naczepą"]]},
+"Miejsca":{i:"🏰",l:"szczegół",e:["zamek","dom","szkoła","latarnia morska","most","wulkan","góra","wyspa","kościół","stadion","wieża Eiffla","piramida","wiatrak","namiot","igloo"],h:[["zamek","z wieżami i mostem zwodzonym"],["dom","z kominem, drzwiami i ogrodem"],["wyspa","z palmą i plażą"],["wulkan","wybuchający lawą"],["latarnia morska","na wzburzonym morzu"],["most","wiszący nad rzeką"],["piramida","z wielbłądem na pustyni"],["namiot","pod rozgwieżdżonym niebem"]]},
+"Sport":{i:"⚽",l:"scena",e:["piłka nożna","koszykówka","tenis","pływanie","narty","bieganie","boks","siatkówka","wspinaczka","golf","skakanka","łyżwiarstwo","jazda na rowerze","bilard","szachy"],h:[["piłkarz","strzela gola do bramki"],["koszykarz","wrzuca piłkę do kosza"],["narciarz","zjeżdża ze stoku"],["pływak","na basenie"],["tenisista","z rakietą na korcie"],["bokser","w rękawicach na ringu"],["wspinacz","na ścianie skalnej"],["łyżwiarz","na lodowisku"]]},
+"Fantasy":{i:"🧙",l:"szczegół",e:["smok","czarodziej","jednorożec","wampir","robot","UFO","duch","syrena","wilkołak","elf","troll","wróżka","pirat","rycerz","zombie"],h:[["smok","zionący ogniem, na górze skarbów"],["czarodziej","z różdżką i spiczastym kapeluszem"],["rycerz","z mieczem, tarczą i zbroją"],["pirat","z papugą i drewnianą nogą"],["syrena","z ogonem i muszelkami"],["robot","z antenami i czerwonymi oczami"],["wróżka","ze skrzydłami i różdżką"],["UFO","porywające krowę"]]}
+};
+let cur=null;
+const X={
+"Zwierzęta":{e:["żółw","wiewiórka","jeż","nietoperz","lama","kangur","zebra","hipopotam","nosorożec","jaszczurka","kaczka","kura","świnia","krowa","owca","koza","mysz","chomik","biedronka","pszczoła","mrówka","skorpion","wieloryb","rozgwiazda","flaming","papuga","orzeł","wilk","lis","niedźwiedź","tygrys","małpa","panda","koala"],h:[["pies","dalmatyńczyk"],["pies","pudel"],["pies","bernardyn"],["pies","doberman"],["pies","pug"],["kot","brytyjski krótkowłosy"],["kot","bengalski"],["kot","ragdoll"],["koń","appaloosa"],["pająk","krzyżak"],["wąż","anakonda"],["ryba","złota rybka"],["rekin","biały"],["papuga","nimfa"],["chomik","syryjski"],["królik","baran"],["żółw","lądowy"],["wilk","polarny"]]},
+"Zawody":{e:["sędzia","piekarz","elektryk","hydraulik","mechanik","weterynarz","pielęgniarka","kelner","fotograf","muzyk","inżynier","naukowiec","żołnierz","marynarz","ogrodnik","bibliotekarz","dziennikarz","kierowca","aktor","cukiernik"],h:[["sędzia","z młotkiem w sądzie"],["piekarz","z chlebem przy piecu"],["elektryk","z kablami i kaskiem"],["weterynarz","bada psa"],["fotograf","z aparatem i statywem"],["marynarz","na statku w czapce"],["naukowiec","w laboratorium z probówkami"],["ogrodnik","z konewką wśród kwiatów"]]},
+"Jedzenie":{e:["ser","jajko","chleb","zupa","spaghetti","kebab","hot dog","popcorn","czekolada","wiśnia","ananas","cytryna","pomidor","ogórek","kukurydza","grzyb","ciasteczko","lizak","kawa","herbata"],h:[["spaghetti","z sosem i klopsikami"],["hot dog","z keczupem i musztardą"],["ananas","z liśćmi"],["ciasteczko","z kawałkami czekolady"],["zupa","w misce z łyżką"],["jajko","sadzone na patelni"],["popcorn","w pudełku w paski"],["kebab","w bułce z sosem"]]},
+"Pojazdy":{e:["ciężarówka","taksówka","radiowóz","karetka","skuter","wózek","łódka","żaglówka","czołg","dźwig","walec","sanki","deskorolka","kolejka górska","statek kosmiczny","dron","wagon","tramwaj","lokomotywa"],h:[["karetka","z kogutem i czerwonym krzyżem"],["radiowóz","z niebieskimi światłami"],["żaglówka","na falach z jednym żaglem"],["dźwig","budowlany z hakiem"],["tramwaj","z pantografem na szynach"],["skuter","z koszykiem"],["czołg","z lufą i gąsienicami"],["dron","z czterema śmigłami"]]},
+"Miejsca":{e:["plac zabaw","plaża","las","jaskinia","jezioro","pustynia","wodospad","farma","lotnisko","szpital","sklep","kino","park","port","wieża zegarowa","dom na drzewie","pałac","cyrk","zoo","kemping"],h:[["plaża","z parasolem i zamkiem z piasku"],["jaskinia","ze stalaktytami"],["farma","ze stodołą i zwierzętami"],["lotnisko","z samolotem i wieżą kontroli"],["dom na drzewie","z drabiną"],["cyrk","z namiotem w paski"],["wodospad","w dżungli"],["pałac","z ogrodem i fontanną"]]},
+"Sport":{e:["hokej","siatkówka plażowa","kajaki","surfing","żeglarstwo","jazda konna","szermierka","rzut oszczepem","skok wzwyż","kręgle","badminton","ping-pong","baseball","rugby","snowboard","gimnastyka","taniec","joga","łucznictwo","skok do wody"],h:[["surfer","na dużej fali"],["hokeista","z kijem i krążkiem"],["gimnastyczka","na równoważni"],["łucznik","celuje w tarczę"],["jeździec","skacze na koniu przez przeszkodę"],["snowboardzista","w skoku"],["szermierz","z florecem"],["kajakarz","na rzece"]]},
+"Fantasy":{e:["yeti","centaur","feniks","gigant","krasnoludek","ogr","wiedźma","kosmita","superbohater","ninja","mumia","gargulec","hydra","anioł","diabeł","Święty Mikołaj","bałwan","potwór z jednym okiem","jednorożec z tęczą"],h:[["wiedźma","na miotle z czarnym kotem"],["ninja","na dachu w nocy"],["kosmita","z trzema oczami przy statku"],["superbohater","w pelerynie na tle miasta"],["feniks","w płomieniach"],["bałwan","z marchewką i szalikiem"],["centaur","z łukiem"],["krasnoludek","z czapką i grzybem"]]}
+};
+Object.keys(X).forEach(k=>{T[k].e=[...new Set([...T[k].e,...X[k].e])];T[k].h.push(...X[k].h);});
+Object.assign(T,{
+"Natura":{i:"🌳",l:"szczegół",e:["drzewo","kwiat","słońce","chmura","tęcza","burza","księżyc","gwiazda","kaktus","palma","grzyb","las","rzeka","ocean","pożar","śnieżynka","trawa","liść","słonecznik","róża","tulipan"],h:[["drzewo","jesienią z opadającymi liśćmi"],["tęcza","nad łąką z kwiatami"],["burza","z piorunem nad morzem"],["słonecznik","z pszczołą"],["kaktus","na pustyni w kwiatach"],["księżyc","w pełni nad lasem"],["palma","z kokosami na wyspie"],["róża","z kolcami i liśćmi"]]},
+"Przedmioty":{i:"🏠",l:"szczegół",e:["krzesło","stół","lampa","telefon","komputer","zegar","klucz","okulary","parasol","plecak","buty","czapka","książka","kubek","łóżko","telewizor","aparat","nożyczki","młotek","latarka","butelka","żarówka","lustro"],h:[["zegar","ścienny z wahadłem"],["lampa","stojąca z abażurem"],["parasol","otwarty w deszczu"],["plecak","szkolny z kieszeniami"],["buty","sportowe ze sznurowadłami"],["telefon","smartfon z ekranem"],["klucz","stary ze zdobieniami"],["krzesło","z oparciem i czterema nogami"]]},
+"Instrumenty":{i:"🎸",l:"szczegół",e:["gitara","pianino","skrzypce","perkusja","trąbka","flet","harfa","saksofon","mikrofon","akordeon","bęben","fortepian","wiolonczela","tamburyn","słuchawki","nuta","radio","gramofon","dyrygent"],h:[["gitara","elektryczna z kablem"],["pianino","z czarnymi i białymi klawiszami"],["perkusja","z talerzami"],["skrzypce","ze smyczkiem"],["saksofon","złoty"],["harfa","ze strunami"],["trąbka","z trzema wentylami"],["gitarzysta","na scenie z gitarą"]]},
+"Święta":{i:"🎄",l:"szczegół",e:["choinka","Mikołaj","renifer","bombka","prezent","dynia","duch","pisanka","zajączek","fajerwerki","tort urodzinowy","balon","serce","wieniec","skarpeta","pierniczek","świeczka","sanie","aniołek"],h:[["choinka","z bombkami i gwiazdą"],["dynia","z wyciętą twarzą"],["pisanka","w kolorowe wzory"],["Mikołaj","na saniach z reniferami"],["tort urodzinowy","ze świeczkami"],["prezent","z kokardą"],["fajerwerki","nad miastem"],["zajączek","z koszykiem pisanek"]]}
+});
+const COL=["#000000","#7a7a7a","#ffffff","#e53935","#fb8c00","#fdd835","#43a047","#1e88e5","#8e24aa","#8d5524","#f48fb1","#c2a27a"];
+const $=id=>document.getElementById(id);
+const cv=$("cv"),ctx=cv.getContext("2d");
+let cur2=0,color=COL[0],size=8,drawing=false,drawn=false,hard=false,score=0,task="",pool=[],busy=false,sample=null;
+function show(id){["menu","modes","game"].forEach(x=>$(x).classList.toggle("hide",x!==id));}
+function blank(){ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);drawn=false;}
+COL.forEach(c=>{const b=document.createElement("button");b.style.background=c;b.onclick=()=>{color=c;[...$("pal").children].forEach(x=>x.classList.remove("sel"));b.classList.add("sel");};if(c===color)b.classList.add("sel");$("pal").appendChild(b);});
+[["Cienki",4],["Średni",8],["Gruby",18]].forEach(([n,s])=>{const b=document.createElement("button");b.textContent=n;if(s===size)b.classList.add("sel");b.onclick=()=>{size=s;[...$("tools").children].forEach(x=>x.classList.remove("sel"));b.classList.add("sel");};$("tools").appendChild(b);});
+const clr=document.createElement("button");clr.textContent="🗑 Wyczyść";clr.onclick=()=>{if(!busy)blank();};$("tools").appendChild(clr);
+function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];}
+let tool="brush",snap=null,sx=0,sy=0;
+[["brush","✏️ Pędzel"],["line","╱ Linia"],["rect","⬜ Kwadrat"],["circle","⚪ Koło"],["fill","🪣 Wypełnij"]].forEach(([k,n])=>{const b=document.createElement("button");b.textContent=n;if(k===tool)b.classList.add("sel");b.onclick=()=>{tool=k;[...$("mt").children].forEach(x=>x.classList.remove("sel"));b.classList.add("sel");};$("mt").appendChild(b);});
+function shape(x,y){ctx.strokeStyle=color;ctx.lineWidth=size*1.6;ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();
+ const dx=x-sx,dy=y-sy;
+ if(tool==="line"){ctx.moveTo(sx,sy);ctx.lineTo(x,y);}
+ else if(tool==="rect"){const m=Math.max(Math.abs(dx),Math.abs(dy));ctx.rect(sx,sy,(dx<0?-m:m),(dy<0?-m:m));}
+ else{ctx.arc(sx,sy,Math.hypot(dx,dy),0,7);}
+ ctx.stroke();}
+function fill(x,y){const w=cv.width,h=cv.height,img=ctx.getImageData(0,0,w,h),d=img.data;
+ const c=parseInt(color.slice(1),16),fr=c>>16,fg=(c>>8)&255,fb=c&255;
+ const i0=(y*w+x)*4,tr=d[i0],tg=d[i0+1],tb=d[i0+2];
+ if(Math.abs(tr-fr)+Math.abs(tg-fg)+Math.abs(tb-fb)<10)return;
+ const near=i=>Math.abs(d[i]-tr)+Math.abs(d[i+1]-tg)+Math.abs(d[i+2]-tb)<60;
+ const seen=new Uint8Array(w*h),st=[y*w+x];
+ while(st.length){const p=st.pop();if(seen[p])continue;seen[p]=1;const i=p*4;if(!near(i))continue;d[i]=fr;d[i+1]=fg;d[i+2]=fb;d[i+3]=255;
+  const px=p%w;if(px>0)st.push(p-1);if(px<w-1)st.push(p+1);if(p>=w)st.push(p-w);if(p<w*(h-1))st.push(p+w);}
+ ctx.putImageData(img,0,0);}
+cv.addEventListener("pointerdown",e=>{if(busy)return;const[x,y]=pos(e);
+ if(tool==="fill"){fill(Math.floor(x),Math.floor(y));drawn=true;return;}
+ drawing=true;cv.setPointerCapture(e.pointerId);sx=x;sy=y;
+ if(tool==="brush"){drawn=true;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,size/2*1.6,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(x,y);}
+ else snap=ctx.getImageData(0,0,cv.width,cv.height);});
+cv.addEventListener("pointermove",e=>{if(!drawing)return;const[x,y]=pos(e);
+ if(tool==="brush"){ctx.strokeStyle=color;ctx.lineWidth=size*1.6;ctx.lineCap="round";ctx.lineJoin="round";ctx.lineTo(x,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y);}
+ else{ctx.putImageData(snap,0,0);shape(x,y);drawn=true;}});
+["pointerup","pointercancel"].forEach(t=>cv.addEventListener(t,()=>{drawing=false;}));
+function round(){
+ if(!pool.length)pool=(hard?cur.h:cur.e).slice().sort(()=>Math.random()-.5);
+ const c=pool.pop();
+ task=hard?c[0]+" – "+cur.l+": "+c[1]:c;
+ $("task").textContent="Narysuj: "+task;
+ blank();$("res").innerHTML="";$("rate").classList.remove("hide");$("rate").disabled=false;busy=false;
+}
+Object.keys(T).forEach(k=>{const b=document.createElement("button");b.className="topic";b.innerHTML="<span>"+T[k].i+"</span>"+k;b.onclick=()=>{cur=T[k];$("mtitle").textContent=T[k].i+" "+k+" – wybierz tryb";show("modes");};$("topics").appendChild(b);});
+function start(h){hard=h;score=0;pool=[];$("score").textContent="Punkty: 0";$("mode").textContent=h?"🔴 Trudny":"🟢 Łatwy";show("game");round();}
+const ERR={not_granted:"Nie zezwoliłeś na użycie AI. Kliknij „Oceń rysunek” jeszcze raz i zezwól.",rate_limited:"Za dużo prób, poczekaj chwilę.",images_unavailable:"Ta wersja gry nie może wysyłać rysunków do AI.",image_rejected:"Nie udało się wysłać rysunku do AI."};
+async function rate(){
+ if(busy)return;
+ if(!drawn){$("res").textContent="Najpierw coś narysuj ✏️";return;}
+ busy=true;$("rate").disabled=true;$("res").textContent="AI ocenia rysunek… (może to potrwać kilka sekund)";
+ try{
+  if(typeof claude==="undefined")throw {code:"no_runtime"};
+  if(!sample)sample=await claude.use("sample");
+  if(!sample)throw {code:"no_sample"};
+  const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+  const prompt="Jesteś jurorem w grze rysunkowej. Na załączonym obrazku jest rysunek gracza. Gracz miał narysować: „"+task+"”. Oceń rysunek w skali od 1 do 10 (liczba całkowita). "+(hard?"To tryb trudny: oceń też, czy widać dodatkowy szczegół z zadania (np. cechy rasy, kolory, charakterystyczne elementy). ":"")+"Pusta lub bezsensowna kartka to 1. Bądź uczciwy, ale życzliwy. Odpowiedz wyłącznie JSON-em: {\"score\":liczba,\"comment\":\"jedno krótkie zdanie po polsku\",\"tip\":\"w skrócie, co gracz mógłby dodać lub poprawić na rysunku, maksymalnie jedno zdanie\"}";
+  const out=await sample(prompt,{images:[blob],modelTier:"quick",cache:false});
+  let n,c="",t="";
+  try{const j=JSON.parse(out.text.match(/\{[\s\S]*\}/)[0]);n=Number(j.score);c=j.comment||"";t=j.tip||"";}
+  catch(_){const m=out.text.match(/\b(10|[1-9])\b/);n=m?Number(m[1]):NaN;c=out.text.slice(0,140);}
+  if(!(n>=1))throw {code:"bad_answer"};
+  n=Math.max(1,Math.min(10,Math.round(n)));
+  score+=n;$("score").textContent="Punkty: "+score;
+  $("res").innerHTML="Ocena: "+n+"/10 "+(n>=8?"🎉":n>=5?"👍":"🙂")+"<small></small><small></small>";const sm=$("res").querySelectorAll("small");sm[0].textContent=c;sm[1].textContent=t?"💡 Dodaj: "+t:"";
+  $("rate").classList.add("hide");
+ }catch(e){
+  const code=(e&&e.code)||"unknown";
+  $("res").textContent=ERR[code]||((code==="no_runtime"||code==="no_sample")?"Ocenianie AI działa tylko po otwarciu gry w aplikacji Claude, nie w zwykłej przeglądarce.":"Nie udało się ocenić ("+code+"). Spróbuj jeszcze raz.");
+  busy=false;$("rate").disabled=false;
+ }
+}
+$("easy").onclick=()=>start(false);$("hard").onclick=()=>start(true);
+$("b1").onclick=()=>show("menu");$("exit").onclick=()=>show("menu");
+$("rate").onclick=rate;$("next").onclick=round;
+</script>
+</body>
+</html>
